@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>SS-Truppenübungsplatz Böhmen (1941–1945) – historische Karte</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; font-family: Georgia, 'Times New Roman', serif; }
+  #map { height: 100%; width: 100%; background: #f2efe9; }
+  .titlebox {
+    position: absolute; top: 10px; left: 50px; z-index: 1000;
+    background: rgba(38, 30, 24, 0.88); color: #f1e6d4;
+    padding: 12px 16px; border-radius: 6px; max-width: 430px;
+    border: 1px solid #8a7a5c; box-shadow: 0 2px 10px rgba(0,0,0,.4);
+  }
+  .titlebox h1 { font-size: 17px; margin: 0 0 4px 0; letter-spacing: .5px; }
+  .titlebox p { font-size: 11.5px; margin: 0; color: #d8c9ab; line-height: 1.45; }
+  .legend {
+    position: absolute; bottom: 18px; left: 10px; z-index: 1000;
+    background: rgba(255,253,247,.94); border: 1px solid #9b8a6d;
+    border-radius: 6px; padding: 10px 12px; font-size: 12px;
+    font-family: Helvetica, Arial, sans-serif; box-shadow: 0 2px 8px rgba(0,0,0,.3);
+    max-width: 300px;
+  }
+  .legend h2 { font-size: 12px; margin: 0 0 6px 0; text-transform: uppercase; letter-spacing: 1px; }
+  .legend .item { display: flex; align-items: center; margin: 3px 0; }
+  .legend .swatch { width: 20px; height: 12px; margin-right: 7px; flex: 0 0 auto; border: 1px solid #555; }
+  .legend .line { height: 0; border-top: 3px dashed; width: 20px; margin-right: 7px; flex: 0 0 auto; }
+  .mklabel {
+    background: #fff; border: 1.5px solid #444; border-radius: 3px;
+    font: bold 10.5px Helvetica, Arial, sans-serif; padding: 1px 4px; white-space: nowrap;
+    box-shadow: 0 1px 3px rgba(0,0,0,.4);
+  }
+  .mklabel.star { border-color: #7a5c00; background: #ffe9b3; }
+  .mklabel.school { border-color: #1c3f6e; background: #dcebfa; color: #10263f; }
+  .mklabel.lager { border-color: #5e0f0f; background: #f8d7d7; color: #4a0a0a; }
+  .mklabel.ort { border-color: #5b5b43; background: #efeeda; color: #333322; }
+  .mklabel.prag { border-color: #5b2d82; background: #e9dcf5; color: #39185a; }
+  .mklabel.museum { border-color: #1e5e2a; background: #dbf0de; color: #143d1c; }
+  .mklabel.eigen { border-color: #9c6500; background: #fff3cd; color: #7c4a00; }
+  .mklabel { transform: translate(10px, -22px); }
+  .setzbox { padding: 4px; }
+  .setzbox button {
+    display: block; width: 100%; margin-bottom: 4px; padding: 5px 9px;
+    font: bold 11px Helvetica, Arial, sans-serif; border: 1px solid #6d5b3f;
+    background: #fff8e8; color: #4a3a20; border-radius: 4px; cursor: pointer;
+    box-shadow: 0 1px 4px rgba(0,0,0,.3);
+  }
+  .setzbox button.aktiv { background: #b2182b; color: #fff; border-color: #7a1020; }
+  #map.marker-setzen .leaflet-grab { cursor: crosshair !important; }
+  .editform label { display: block; font-size: 11px; color: #555; margin: 6px 0 2px 0; font-family: Helvetica, Arial, sans-serif; }
+  .editform input, .editform textarea {
+    width: 190px; font: 12px Helvetica, Arial, sans-serif; padding: 3px;
+    border: 1px solid #999; border-radius: 3px;
+  }
+  .editform textarea { height: 56px; resize: vertical; }
+  .editform button {
+    margin: 6px 6px 0 0; padding: 3px 10px; font: bold 11px Helvetica, Arial, sans-serif;
+    cursor: pointer; border-radius: 3px; border: 1px solid #6d5b3f; background: #e8e0cc;
+  }
+  .editform button.zloesch { background: #f4dbdb; border-color: #8a3a3a; color: #5e0f0f; }
+  .eigenbadge { font-size: 9.5px; color: #8a7a5c; text-transform: uppercase; letter-spacing: .5px; }
+  .popupkoord { font-size: 10px; color: #888; margin-top: 4px; font-family: monospace; }
+  .leaflet-popup-content { font-family: Helvetica, Arial, sans-serif; font-size: 12px; line-height: 1.5; }
+  .popupplace { font-size: 14px; font-weight: bold; margin-bottom: 2px; }
+  .popupde { color: #666; font-style: italic; margin-bottom: 6px; }
+  .disclaimer {
+    position: absolute; bottom: 8px; right: 8px; z-index: 1000; font-size: 10px;
+    background: rgba(255,255,255,.85); color: #555; padding: 3px 8px; border-radius: 3px;
+    font-family: Helvetica, Arial, sans-serif; max-width: 520px;
+  }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div class="titlebox">
+  <h1>SS-Truppenübungsplatz Böhmen</h1>
+  <p>Bis 1943 „SS-Truppenübungsplatz Beneschau“ – Militärgelände der Waffen-SS im Reichsprotektorat Böhmen und Mähren, 1941/42 errichtet, ca. 44.000&nbsp;ha zwischen Moldau, Sasau, Benešov und Sedlčany. Bis Ende 1943/44 wurden 65 Gemeinden mit 144 Siedlungen geräumt und 30.986 Menschen vertrieben. Mai 1945 Auflösung, Rückkehr der Vertriebenen.</p>
+</div>
+<div class="legend">
+  <h2>Legende</h2>
+  <div class="item"><div class="swatch" style="background:rgba(178,24,43,.28)"></div>Militärgelände (ca. 440 km²)</div>
+  <div class="item"><div class="line" style="border-color:#8a6d1a"></div>Straßen &amp; Bahn (Grenzen)</div>
+  <div class="item"><div class="line" style="border-color:#14532d"></div>Moldau / Sasau (natürl. Grenze)</div>
+  <div class="item"><span class="mklabel star" style="transform:none;margin-right:6px">★</span>Generalstab (Schloss Konopiště)</div>
+  <div class="item"><span class="mklabel school" style="transform:none;margin-right:2px">S</span>SS-Schulen / Lazarette</div>
+  <div class="item"><span class="mklabel lager" style="transform:none;margin-right:2px">K</span>KZ-/Arbeitslager (KZ Flossenbürg)</div>
+  <div class="item"><span class="mklabel ort" style="transform:none;margin-right:2px">O</span>Grenzorte / Räumungsgebiet</div>
+  <div class="item"><span class="mklabel prag" style="transform:none;margin-right:2px">P</span>Einrichtungen in Prag</div>
+  <div class="item"><span class="mklabel museum" style="transform:none;margin-right:2px">M</span>Heutiges Museum</div>
+  <div class="item"><span class="mklabel eigen" style="transform:none;margin-right:2px">+</span>Eigene Marker (setzen / bearbeiten)</div>
+</div>
+<div class="disclaimer">Historische Rekonstruktion auf heutigem Kartenbild (© OpenStreetMap-Mitwirkende). Grenzziehung und Positionen vereinzelner kleiner Orte sind aus der Textbeschreibung (Wikipedia/Dokumentationen) schematisch abgeleitet und nicht kartographisch exakt.</div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const map = L.map('map', { zoomControl: true });
+
+const isLocal = (location.protocol === 'file:');
+
+const tilesCarto = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+  maxZoom: 19, subdomains: 'abcd',
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+}).addTo(map);
+
+const tilesTopo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+  maxZoom: 17, subdomains: 'abc',
+  attribution: '&copy; OpenStreetMap-Mitwirkende, SRTM | &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (CC-BY-SA)'
+});
+
+const tilesDark = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png', {
+  maxZoom: 19, subdomains: 'abcd',
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+});
+
+const tilesOsm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 18,
+  attribution: 'Kartenbild: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>-Mitwirkende'
+});
+
+const baseLayers = {
+  'Karte (Standard)': tilesCarto,
+  'Reliefkarte': tilesTopo,
+  'Dunkle Karte': tilesDark
+};
+if (!isLocal) {
+  baseLayers['OSM (Original)'] = tilesOsm;
+}
+</script>
+<script>
+const eigene = L.layerGroup().addTo(map);
+const eigenMap = {};
+const SPEICHER = 'tup-boehmen-eigene-marker';
+let setzModus = false;
+
+function esc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function speichereEigene() {
+  const liste = [];
+  eigene.eachLayer(function (m) { liste.push(m._data); });
+  try { localStorage.setItem(SPEICHER, JSON.stringify(liste)); } catch (e) {}
+}
+
+function ladeEigene() {
+  let liste = [];
+  try { liste = JSON.parse(localStorage.getItem(SPEICHER) || '[]'); } catch (e) { liste = []; }
+  liste.forEach(function (d) { if (d && typeof d.lat === 'number' && typeof d.lng === 'number') eigenMarker(d); });
+}
+
+function eigenIcon(d) {
+  return L.divIcon({
+    className: '',
+    html: '<span class="mklabel eigen">' + esc(d.titel || '+') + '</span>',
+    iconSize: [10, 10], iconAnchor: [2, 8]
+  });
+}
+
+function eigenAnzeige(m) {
+  const d = m._data;
+  let h = '<div class="popupplace"><span class="eigenbadge">Eigener Marker</span><br>' + esc(d.titel) + '</div>';
+  if (d.text) h += '<div>' + esc(d.text).replace(/\n/g, '<br>') + '</div>';
+  h += '<div class="popupkoord">' + d.lat.toFixed(5) + ', ' + d.lng.toFixed(5) + '</div>';
+  h += '<button style="margin-top:6px;cursor:pointer" onclick="eigenBearbeiten(' + d.id + ')">Bearbeiten / Löschen</button>';
+  return h;
+}
+
+function eigenMarker(d, oeffnen) {
+  if (typeof d.id !== 'number') d.id = Date.now() + Math.floor(Math.random() * 1000);
+  if (typeof d.text !== 'string') d.text = '';
+  if (typeof d.titel !== 'string') d.titel = 'Marker';
+  const m = L.marker([d.lat, d.lng], {
+    icon: eigenIcon(d), draggable: true, autoPan: true
+  });
+  m._data = d;
+  eigenMap[d.id] = m;
+  m.bindPopup(eigenAnzeige(m)).bindTooltip(d.titel, { direction: 'top' });
+  m.on('dragend', function () {
+    const p = m.getLatLng();
+    m._data.lat = p.lat; m._data.lng = p.lng;
+    m.setPopupContent(eigenAnzeige(m));
+    speichereEigene();
+  });
+  eigene.addLayer(m);
+  if (oeffnen) { m.openPopup(); }
+  return m;
+}
+
+function eigenBearbeiten(id) {
+  const m = eigenMap[id];
+  if (!m) return;
+  const d = m._data;
+  m.setPopupContent(
+    '<div class="editform"><b>Eigener Marker</b>' +
+    '<label>Titel<br><input id="ef-titel-' + id + '" value="' + esc(d.titel) + '"></label>' +
+    '<label>Beschreibung / Notiz<br><textarea id="ef-text-' + id + '">' + esc(d.text) + '</textarea></label>' +
+    'Position: Marker mit der Maus verschieben.' +
+    '<div><button onclick="eigenSpeichern(' + id + ')">Speichern</button>' +
+    '<button class="zloesch" onclick="eigenLoeschen(' + id + ')">Löschen</button></div></div>');
+  m.openPopup();
+}
+
+function eigenSpeichern(id) {
+  const m = eigenMap[id];
+  if (!m) return;
+  const t = document.getElementById('ef-titel-' + id);
+  const x = document.getElementById('ef-text-' + id);
+  m._data.titel = t ? t.value.replace(/^\s+|\s+$/g, '') || 'Marker' : m._data.titel;
+  m._data.text = x ? x.value : '';
+  m.setIcon(eigenIcon(m._data));
+  m.setTooltipContent(m._data.titel);
+  m.setPopupContent(eigenAnzeige(m));
+  speichereEigene();
+}
+
+function eigenLoeschen(id) {
+  const m = eigenMap[id];
+  if (!m) return;
+  eigene.removeLayer(m);
+  delete eigenMap[id];
+  speichereEigene();
+}
+
+function alleEigeneLoeschen() {
+  if (!eigene.getLayers().length) return;
+  const n = eigene.getLayers().length;
+  if (!window.confirm('Alle ' + n + ' eigene(n) Marker löschen?')) return;
+  eigene.eachLayer(function (m) { delete eigenMap[m._data.id]; });
+  eigene.clearLayers();
+  speichereEigene();
+}
+
+function schalteSetzModus() {
+  setzModus = !setzModus;
+  const btn = document.getElementById('btnSetzen');
+  btn.textContent = setzModus ? 'Klicke auf die Karte …' : '+ Marker setzen';
+  btn.className = setzModus ? 'aktiv' : '';
+  document.getElementById('map').classList.toggle('marker-setzen', setzModus);
+}
+
+function eigeneNeu(pos) {
+  let n = 1;
+  for (const k in eigenMap) n++;
+  eigenMarker({ id: Date.now(), lat: pos.lat, lng: pos.lng, titel: 'Mein Marker ' + n, text: '' }, true);
+  speichereEigene();
+}
+
+map.on('click', function (e) {
+  if (setzModus) eigeneNeu(e.latlng);
+});
+
+const setzControl = L.control({ position: 'topright' });
+setzControl.onAdd = function () {
+  const div = L.DomUtil.create('div', 'setzbox');
+  div.innerHTML = '<button id="btnSetzen" title=" Marker-Modus ein-/ausschalten, dann auf die Karte klicken">+ Marker setzen</button>' +
+    '<button id="btnReset" title="Alle eigenen Marker entfernen">Alle löschen</button>';
+  L.DomEvent.disableClickPropagation(div);
+  L.DomEvent.on(div, 'click', L.DomEvent.stopPropagation);
+  return div;
+};
+setzControl.addTo(map);
+
+document.addEventListener('DOMContentLoaded', function () {
+  document.getElementById('btnSetzen').addEventListener('click', schalteSetzModus);
+  document.getElementById('btnReset').addEventListener('click', alleEigeneLoeschen);
+});
+
+ladeEigene();
+</script>
+<script>
+const zone = L.polygon([
+  [49.7829, 14.6876],
+  [49.799, 14.646],
+  [49.820, 14.615],
+  [49.8335, 14.5960],
+  [49.8441, 14.5524],
+  [49.8614, 14.5328],
+  [49.8629, 14.5033],
+  [49.8670, 14.4760],
+  [49.8731, 14.4437],
+  [49.8660, 14.4380],
+  [49.8510, 14.4100],
+  [49.8300, 14.4030],
+  [49.8136, 14.4010],
+  [49.8000, 14.4100],
+  [49.7900, 14.4250],
+  [49.7660, 14.4330],
+  [49.7400, 14.4380],
+  [49.7250, 14.4200],
+  [49.7100, 14.4000],
+  [49.6900, 14.3450],
+  [49.6763, 14.3196],
+  [49.6710, 14.3641],
+  [49.6582, 14.4255],
+  [49.6480, 14.5000],
+  [49.6500, 14.5500],
+  [49.6600, 14.5850],
+  [49.6690, 14.5930],
+  [49.6716, 14.5947],
+  [49.6845, 14.5946],
+  [49.7050, 14.6100],
+  [49.7250, 14.6250],
+  [49.7600, 14.6600],
+  [49.7829, 14.6876]
+], {
+  color: '#b2182b', weight: 2.5, dashArray: '1 0',
+  fillColor: '#b2182b', fillOpacity: 0.13
+}).addTo(map)
+.bindPopup('<div class="popupplace">Militärgelände „Truppenübungsplatz Beneschau“</div>' +
+  '<div class="popupde">SS-Truppenübungsplatz Böhmen (ab Sept. 1943)</div>' +
+  'Formelle Errichtung zum <b>1. November 1941</b> durch Beschluss, Vorbereitung seit Sommer 1941 unter SS-Oberführer Julian Scherner.<br>' +
+  'Größe: ca. <b>44.000 ha</b> zwischen Moldau und Sasau.<br>' +
+  'Geräumt: 65 Gemeinden mit 144 Siedlungen, 5.682 Häuser, 8.619 Familien – <b>30.986 Vertriebene</b> (Zwangsaussiedlung 1942 bis 1. April 1944).<br>' +
+  'Auflösung nach der deutschen Kapitulation, ab Mai 1945 Wiederbesiedlung.');
+
+const grenzen = L.layerGroup().addTo(map);
+
+L.polyline([
+  [49.7829, 14.6876], [49.799, 14.646], [49.820, 14.615], [49.8335, 14.5960],
+  [49.8441, 14.5524], [49.8614, 14.5328], [49.8629, 14.5033], [49.8670, 14.4760], [49.8731, 14.4437]
+], { color: '#8a6d1a', weight: 3, dashArray: '8 6' }).addTo(grenzen)
+.bindTooltip('Nordgrenze: Landstraße Benešov – Týnec n. S. – Kamenný Přívoz', { sticky: true });
+
+L.polyline([
+  [49.8731, 14.4437], [49.8660, 14.4380], [49.8510, 14.4100], [49.8300, 14.4030],
+  [49.8136, 14.4010], [49.8000, 14.4100], [49.7900, 14.4250], [49.7660, 14.4330],
+  [49.7400, 14.4380], [49.7250, 14.4200], [49.7100, 14.4000], [49.6900, 14.3450], [49.6763, 14.3196]
+], { color: '#14532d', weight: 3.5, dashArray: '12 5' }).addTo(grenzen)
+.bindTooltip('Westgrenze: Tal der Moldau (Vltava / Stausee Slapy–Vrané)', { sticky: true });
+
+L.polyline([
+  [49.6763, 14.3196], [49.6710, 14.3641], [49.6582, 14.4255]
+], { color: '#8a6d1a', weight: 3, dashArray: '8 6' }).addTo(grenzen)
+.bindTooltip('Südgrenze: Landstraße Líchovy – Dublovice – Sedlčany', { sticky: true });
+
+L.polyline([
+  [49.6582, 14.4255], [49.6480, 14.5000], [49.6500, 14.5500], [49.6600, 14.5850],
+  [49.6690, 14.5930], [49.6716, 14.5947], [49.6845, 14.5946], [49.7050, 14.6100],
+  [49.7250, 14.6250], [49.7600, 14.6600], [49.7829, 14.6876]
+], { color: '#334155', weight: 3.5, dashArray: '4 5' }).addTo(grenzen)
+.bindTooltip('Ostgrenze: Eisenbahnstrecke Tábor – Votice – Benešov', { sticky: true });
+
+L.polyline([
+  [49.8629, 14.5033], [49.8670, 14.4760], [49.8731, 14.4437]
+], { color: '#0e7490', weight: 3 }).addTo(grenzen)
+.bindTooltip('Sasau (Sázava) bis zur Mündung in die Moldau', { sticky: true });
+
+function mk(lat, lng, label, cls, html) {
+  const num = cls === 'star' ? '★' : (cls === 'school' ? 'S' : (cls === 'lager' ? 'K' : (cls === 'prag' ? 'P' : (cls === 'museum' ? 'M' : 'O'))));
+  const icon = L.divIcon({
+    className: '',
+    html: '<span class="mklabel ' + cls + '">' + num + '</span>',
+    iconSize: [10, 10], iconAnchor: [2, 8]
+  });
+  return L.marker([lat, lng], { icon: icon }).bindPopup(html).bindTooltip(label, { direction: 'top' });
+}
+
+const hauptsitz = L.layerGroup().addTo(map);
+const schulen = L.layerGroup().addTo(map);
+const lager = L.layerGroup().addTo(map);
+const orte = L.layerGroup().addTo(map);
+const prag = L.layerGroup().addTo(map);
+const museum = L.layerGroup().addTo(map);
+
+hauptsitz.addLayer(mk(49.7803, 14.6557, 'Schloss Konopiště (Konopischt)', 'star',
+  '<div class="popupplace">Schloss Konopiště (Konopischt)</div>' +
+  'Ab <b>1943</b> Sitz des <b>Generalstabs</b> des Truppenübungsplatzes.'));
+
+schulen.addLayer(mk(49.86143, 14.53278, 'SS-Panzergrenadier-Schule Prosečnice', 'school',
+  '<div class="popupplace">Prosečnice (Prosetschnitz)</div>' +
+  '<b>SS-Panzergrenadier-Schule „Prosetschnitz“</b>, später „Kienschlag“ genannt.'));
+
+schulen.addLayer(mk(49.86887, 14.40913, 'SS-Pionier-Schule Hradištko', 'school',
+  '<div class="popupplace">Hradištko (Hradischko)</div>' +
+  '<b>SS-Pionier-Schule Hradischko</b> an der Sasau-Mündung. Zusätzlich: SS-Pionier-Technische Lehranstalt.<br>' +
+  '<span style="color:#5e0f0f"><b>Berüchtigtstes Lager</b> des Übungsgeländes: KZ-Außenkommando (KZ Flossenbürg); zum Kriegsende wurden hier zahlreiche Gefangene erschossen.</span>'));
+
+schulen.addLayer(mk(49.66682, 14.57780, 'SS-Panzerjäger-Schule „Janowitz“', 'school',
+  '<div class="popupplace">Vrchotovy Janovice (Markt Janowitz)</div>' +
+  '<b>SS-Panzerjäger-Schule „Janowitz“</b>. Das Schloss diente als militärisches Hauptquartier und Kaserne.<br>' +
+  'Räumung in der 5. Phase bis 1. April 1944.<br>' +
+  '<span style="color:#5e0f0f"><b>KZ-Außenlager Flossenbürg</b> (24.7.1944 – Ende 3.1945, ca. 200 Häftlinge); 1945 starb bis zu die Hälfte der Gefangenen an einer Typhusepidemie. Denkmal am Nový rybník.</span>'));
+
+schulen.addLayer(mk(49.7829, 14.6876, 'SS-Artillerie-Schule II / Sanitäts-Schule Benešov', 'school',
+  '<div class="popupplace">Benešov (Beneschau)</div>' +
+  '<b>SS-Artillerie-Schule II „Beneschau“</b> und <b>SS-Sanitäts-Schule Prag-Beneschau</b>.<br>' +
+  'Ab 1943 Räumung der Stadt Benešov und weiterer Orte.'));
+
+schulen.addLayer(mk(49.75353, 14.53342, 'Neveklov (Neweklau)', 'ort',
+  '<div class="popupplace">Neveklov (Neweklau)</div>' +
+  'Zentraler Marktfleck des Räumungsgebiets: <b>71 Ortschaften</b> wurden ab dem <b>1. September 1942</b> zwangsweise ausgesiedelt (Abschluss Ende 1943). Gedenkstätte „Památník Vystěhování Neveklovska“.'));
+
+lager.addLayer(mk(49.799, 14.646, 'Arbeits-/Sonderlager (diverse)', 'lager',
+  '<div class="popupplace">Arbeits- und Sonderlager</div>' +
+  'Auf dem Gelände bestanden u.&nbsp;a. „Sondererziehungslager“, „Sonderlager“ für Gefangene aus „gemischten jüdischen Familien“, ein Gefangenenlager für SS-Angehörige und politische Häftlinge.<br>' +
+  'Ab ca. 1943 Umbau mehrerer Lager in <b>Außenstellen des KZ Flossenbürg</b>. Lage schematisch.'));
+
+museum.addLayer(mk(49.84447, 14.52478, 'Militärtechnisches Museum Lešany', 'museum',
+  '<div class="popupplace">Lešany (Leschan)</div>' +
+  'Kasernenbereich bei Lešany. <b>1996</b> Eröffnung des <b>Militärtechnischen Museums Lešany</b> auf dem ehemaligen Militärgelände.'));
+
+orte.addLayer(mk(49.83348, 14.58995, 'Týnec nad Sázavou (Teinitz)', 'ort',
+  '<div class="popupplace">Týnec nad Sázavou (Teinitz)</div>' +
+  'Nordgrenze: Straße von Benešov über Týnec nad Sázavou nach Kamenný Přívoz.'));
+
+orte.addLayer(mk(49.86287, 14.50325, 'Kamenný Přívoz (Steinüberfuhr)', 'ort',
+  '<div class="popupplace">Kamenný Přívoz (Steinüberfuhr)</div>' +
+  'Nordwestecke des Geländes an der Einmündung der Sasau in die Moldau.'));
+
+orte.addLayer(mk(49.6716, 14.5947, 'Votice (Wotitz)', 'ort',
+  '<div class="popupplace">Votice (Wotitz)</div>' +
+  'Am Ostrand: Bahnstrecke Tábor–Votice (–Benešov) als Ostgrenze des Militärgebiets.'));
+
+orte.addLayer(mk(49.65823, 14.42549, 'Sedlčany (Seltschan)', 'ort',
+  '<div class="popupplace">Sedlčany (Seltschan)</div>' +
+  'Südgrenze: Straße von Líchovy über Dublovice nach Sedlčany.'));
+
+orte.addLayer(mk(49.6710, 14.3641, 'Dublovice', 'ort',
+  '<div class="popupplace">Dublovice</div>' +
+  'Ort der Südgrenze am Slapy-Stausee (Moldau).'));
+
+orte.addLayer(mk(49.6763, 14.3196, 'Líchovy (Lichau)', 'ort',
+  '<div class="popupplace">Líchovy (Lichau)</div>' +
+  'Südwestecke des Militärgebiets, Ausgangspunkt der Südgrenzstraße.'));
+
+prag.addLayer(mk(50.0355, 14.4175, 'SS-Lazarett Prag-Podolí', 'prag',
+  '<div class="popupplace">Prag-Podolí</div>' +
+  '<b>SS-Lazarett Prag-Podol</b>, zugeordnet der SS-Sanitäts-Schule Prag-Beneschau.'));
+
+prag.addLayer(mk(50.0966, 14.3930, 'SS-Junkerschule Prag-Dewitz', 'prag',
+  '<div class="popupplace">Prag-Dejvice (Dewitz)</div>' +
+  '<b>SS-Junkerschule Prag-Dewitz</b>, am 1. Juni 1944 dem Truppenübungsplatz angegliedert.'));
+
+prag.addLayer(mk(50.0855, 14.4255, 'Weiteres SS-Lazarett / Reichsschule Prag', 'prag',
+  '<div class="popupplace">Prag</div>' +
+  '<b>SS-Lazarett der Kriegsblinden-Schule Prag</b> sowie <b>Reichsschule für Leibeserziehung Prag</b> – beide dem Truppenübungsplatz zugeordnet. Lage schematisch.'));
+
+L.control.layers(baseLayers, {
+  'Militärgelände (Rekonstruktion)': zone,
+  'Grenzverlauf': grenzen,
+  'Generalstab (Konopiště)': hauptsitz,
+  'SS-Schulen': schulen,
+  'KZ-/Arbeitslager': lager,
+  'Grenzorte &amp; Räumung': orte,
+  'Einrichtungen in Prag': prag,
+  'Museum (heute)': museum,
+  'Meine Marker': eigene
+}).addTo(map);
+
+map.fitBounds(zone.getBounds().pad(0.08));
+</script>
+</body>
+</html>
